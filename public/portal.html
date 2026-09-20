@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#231f20" />
+  <title>Client portal — GQ Electrical Services</title>
+  <link rel="icon" type="image/svg+xml" href="/brand/logo-icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+  <header class="nav light" id="nav">
+    <a class="nav-brand" href="/" aria-label="GQ Electrical Services">
+      <img class="mark" src="/brand/logo-icon.svg" alt="" />
+      <span class="nav-word" style="color:#231f20">GQ Electrical</span>
+    </a>
+    <nav class="nav-links">
+      <a href="/">Home</a>
+      <a href="/#consult">Consult</a>
+      <a href="/portal">Portal</a>
+    </nav>
+    <a class="nav-toggle" href="/" style="text-decoration:none">Home</a>
+  </header>
+
+  <div class="page-head">
+    <div class="wrap">
+      <p class="eyebrow" style="color:rgba(255,255,255,0.5)">Client portal</p>
+      <h1>Your house, on paper.</h1>
+      <p>Look up quotes, jobs, and invoices with the name and phone on file, or your portal code.</p>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="wrap" style="max-width:640px">
+      <form class="form" id="lookup">
+        <label class="field">Name
+          <input name="name" autocomplete="name" placeholder="As it appears on the quote" />
+        </label>
+        <label class="field">Phone
+          <input name="phone" type="tel" autocomplete="tel" />
+        </label>
+        <p class="form-note" style="margin:4px 0">Or use your portal code alone.</p>
+        <label class="field">Portal code
+          <input name="code" placeholder="GQ-······" autocomplete="off" style="text-transform:uppercase" />
+        </label>
+        <p class="err" id="err" hidden></p>
+        <button class="btn-dark" type="submit">Open portal</button>
+      </form>
+
+      <div id="desk" hidden></div>
+    </div>
+  </div>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      <div class="foot-brand">
+        <img src="/brand/logo-icon-white.svg" alt="" />
+        <span>GQ Electrical</span>
+      </div>
+      <div class="foot-copy">Where Guaranteed Meets Quality.</div>
+    </div>
+  </footer>
+  <script src="/portal.js"></script>
+</body>
+</html>

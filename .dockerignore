@@ -1,0 +1,6 @@
+cloudflared
+screenshots
+__pycache__
+.git
+*.log
+tunnel.sh

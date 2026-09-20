@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+cloudflared
+*.log
+data/*.db-shm
+data/*.db-wal
+screenshots/
+.DS_Store
