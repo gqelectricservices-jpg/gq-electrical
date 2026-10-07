@@ -382,7 +382,7 @@
   }
 
   function itemRows(items, laborRate) {
-    const rows = items && items.length ? items : [{ kind: "labor", description: "", qty: 1, unit: "hr", unit_price: laborRate || 125 }];
+    const rows = items && items.length ? items : [{ kind: "labor", description: "", qty: 1, unit: "hr", unit_price: laborRate ?? "" }];
     return rows.map((it, i) => itemRowHtml(it, i)).join("");
   }
   function itemRowHtml(it, i) {
@@ -391,7 +391,7 @@
       <td><input name="description" value="${esc(it.description || "")}" placeholder="Description" /></td>
       <td><input name="qty" type="number" step="0.01" value="${it.qty ?? 1}" /></td>
       <td><input name="unit" value="${esc(it.unit || "ea")}" /></td>
-      <td class="num"><input name="unit_price" type="number" step="0.01" value="${it.unit_price ?? 0}" /></td>
+      <td class="num"><input name="unit_price" type="number" step="0.01" value="${it.unit_price ?? ""}" placeholder="0.00" /></td>
       <td><div class="line-actions"><button type="button" data-del>×</button></div></td>
     </tr>`;
   }
@@ -401,7 +401,7 @@
       api("/customers"), api("/settings"), api("/inventory"),
     ]);
     const q = isNew ? {
-      status: "draft", notes: "", tax_rate: settings.tax_rate, items: [],
+      status: "draft", notes: "", tax_rate: settings.tax_rate ?? "", items: [],
       customer_id: customers[0]?.id, address_id: customers[0]?.addresses?.[0]?.id,
     } : await api("/quotes/" + id);
     setTitle(isNew ? "New quote" : q.number);
@@ -423,7 +423,7 @@
           </select>
         </label>
         <label class="field">Notes<textarea name="notes">${esc(q.notes || "")}</textarea></label>
-        <label class="field">Tax rate (e.g. 0.06625)<input name="tax_rate" type="number" step="0.00001" value="${q.tax_rate}" /></label>
+        <label class="field">Tax rate (e.g. 0.06625)<input name="tax_rate" type="number" step="0.00001" value="${q.tax_rate ?? ""}" /></label>
         <div class="section"><h2>Line items</h2></div>
         <div class="table-wrap card">
           <table class="data" id="items">
@@ -482,17 +482,16 @@
       if (e.target.dataset.del !== undefined) { e.target.closest("tr").remove(); refreshTotals(); }
     });
     $("#add-labor").onclick = () => {
-      tbody.insertAdjacentHTML("beforeend", itemRowHtml({ kind: "labor", qty: 1, unit: "hr", unit_price: settings.default_labor_rate }));
+      tbody.insertAdjacentHTML("beforeend", itemRowHtml({ kind: "labor", qty: 1, unit: "hr", unit_price: settings.default_labor_rate ?? "" }));
     };
     $("#add-mat").onclick = () => {
-      tbody.insertAdjacentHTML("beforeend", itemRowHtml({ kind: "material", qty: 1, unit: "ea", unit_price: 0 }));
+      tbody.insertAdjacentHTML("beforeend", itemRowHtml({ kind: "material", qty: 1, unit: "ea", unit_price: "" }));
     };
     $("#invpick").onchange = (e) => {
       const opt = e.target.selectedOptions[0];
       if (!opt.value) return;
-      const markup = +(opt.dataset.cost || 0) * 1.45;
       tbody.insertAdjacentHTML("beforeend", itemRowHtml({
-        kind: "material", description: opt.dataset.name, qty: 1, unit: opt.dataset.unit, unit_price: Math.round(markup * 100) / 100,
+        kind: "material", description: opt.dataset.name, qty: 1, unit: opt.dataset.unit, unit_price: "",
         inventory_id: opt.value,
       }));
       e.target.value = "";
@@ -508,7 +507,7 @@
         address_id: fd.get("address_id") ? +fd.get("address_id") : null,
         status: fd.get("status"),
         notes: fd.get("notes"),
-        tax_rate: +fd.get("tax_rate"),
+        tax_rate: fd.get("tax_rate") === "" ? null : +fd.get("tax_rate"),
         items: readItems(),
       };
       if (isNew) {
@@ -952,7 +951,7 @@
         </div>
         <div class="grid-2">
           <label class="field">Unit<input name="unit" value="ea" /></label>
-          <label class="field">Unit cost<input name="unit_cost" type="number" step="0.01" value="0" /></label>
+          <label class="field">Unit cost<input name="unit_cost" type="number" step="0.01" placeholder="0.00" /></label>
         </div>
         <div class="grid-2">
           <label class="field">Qty on hand<input name="qty_on_hand" type="number" step="0.01" value="0" /></label>
@@ -1063,8 +1062,8 @@
         <label class="field">ZIP<input name="zip" value="${esc(s.zip || "")}" /></label>
         <label class="field">Service area<textarea name="service_area">${esc(s.service_area || "")}</textarea></label>
         <div class="grid-2">
-          <label class="field">Default labor rate ($/hr)<input name="default_labor_rate" type="number" step="0.01" value="${s.default_labor_rate}" /></label>
-          <label class="field">Tax rate<input name="tax_rate" type="number" step="0.00001" value="${s.tax_rate}" /></label>
+          <label class="field">Default labor rate ($/hr)<input name="default_labor_rate" type="number" step="0.01" value="${s.default_labor_rate ?? ""}" placeholder="Not set" /></label>
+          <label class="field">Tax rate<input name="tax_rate" type="number" step="0.00001" value="${s.tax_rate ?? ""}" placeholder="Not set" /></label>
         </div>
         <label class="field">Invoice footer<textarea name="invoice_footer">${esc(s.invoice_footer || "")}</textarea></label>
         <button class="btn btn-primary" type="submit">Save settings</button>
@@ -1073,8 +1072,8 @@
     $("#sf").addEventListener("submit", async (e) => {
       e.preventDefault();
       const body = Object.fromEntries(new FormData(e.target).entries());
-      body.default_labor_rate = +body.default_labor_rate;
-      body.tax_rate = +body.tax_rate;
+      body.default_labor_rate = body.default_labor_rate === "" ? null : +body.default_labor_rate;
+      body.tax_rate = body.tax_rate === "" ? null : +body.tax_rate;
       await api("/settings", { method: "PUT", body });
       toast("Settings saved");
     });

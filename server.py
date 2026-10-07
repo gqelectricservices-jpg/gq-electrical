@@ -56,6 +56,25 @@ def money(n) -> float:
         return 0.0
 
 
+def rate_or_zero(v) -> float:
+    """Blank tax rate stays blank in Settings; a quote/invoice row stores 0 until the owner sets one."""
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return 0.0
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def blank_or_float(v):
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def line_total(item) -> float:
     return money(item.get("qty", 1) * item.get("unit_price", 0))
 
@@ -68,7 +87,7 @@ def quote_totals(conn, quote_id: int, tax_rate=None):
     if tax_rate is None:
         q = conn.execute("SELECT tax_rate FROM quotes WHERE id = ?", (quote_id,)).fetchone()
         tax_rate = q["tax_rate"] if q else 0
-    tax = money(sub * tax_rate)
+    tax = money(sub * (tax_rate or 0))
     return {"subtotal": money(sub), "tax": tax, "total": money(sub + tax), "items": items}
 
 
@@ -81,7 +100,7 @@ def invoice_totals(conn, invoice_id: int):
         "SELECT * FROM payments WHERE invoice_id = ? ORDER BY paid_at", (invoice_id,)
     ).fetchall()
     sub = sum(line_total(i) for i in items)
-    tax = money(sub * (inv["tax_rate"] if inv else 0))
+    tax = money(sub * ((inv["tax_rate"] or 0) if inv else 0))
     total = money(sub + tax)
     paid = money(sum(p["amount"] for p in pays))
     balance = money(total - paid)
@@ -253,7 +272,7 @@ PUBLIC_DEFAULTS = {
     "city": "Sanford",
     "state": "FL",
     "zip": "32771",
-    "service_area": "Seminole, Orange, Volusia, and Lake Counties — and surrounding Central Florida",
+    "service_area": "Seminole, Orange, Volusia, and Lake Counties",
     "license_no": "ER13016834",
     "tagline": "Where Guaranteed Meets Quality.",
     "location_line": "Sanford, Florida",
@@ -549,7 +568,10 @@ class Handler(BaseHTTPRequestHandler):
                 for f in fields:
                     if f in body:
                         sets.append(f"{f} = ?")
-                        vals.append(body[f])
+                        v = body[f]
+                        if f in ("default_labor_rate", "tax_rate"):
+                            v = blank_or_float(v)
+                        vals.append(v)
                 if sets:
                     conn.execute(f"UPDATE settings SET {', '.join(sets)} WHERE id = 1", vals)
                     conn.commit()
@@ -785,7 +807,7 @@ class Handler(BaseHTTPRequestHandler):
                         body.get("address_id"),
                         body.get("status") or "draft",
                         body.get("notes"),
-                        float(body.get("tax_rate", s["tax_rate"])),
+                        rate_or_zero(body.get("tax_rate", s["tax_rate"])),
                         now_iso(),
                         body.get("valid_until"),
                     ),
@@ -812,7 +834,7 @@ class Handler(BaseHTTPRequestHandler):
                         body.get("address_id", row["address_id"]),
                         body.get("status", row["status"]),
                         body.get("notes", row["notes"]),
-                        float(body.get("tax_rate", row["tax_rate"])),
+                        rate_or_zero(body.get("tax_rate", row["tax_rate"])),
                         body.get("valid_until", row["valid_until"]),
                         ident,
                     ),
@@ -1023,7 +1045,7 @@ class Handler(BaseHTTPRequestHandler):
                         body.get("job_id"),
                         body.get("address_id"),
                         "unpaid",
-                        float(body.get("tax_rate", s["tax_rate"])),
+                        rate_or_zero(body.get("tax_rate", s["tax_rate"])),
                         issued,
                         due,
                         body.get("notes"),
@@ -1075,7 +1097,7 @@ class Handler(BaseHTTPRequestHandler):
                     (
                         body.get("notes", row["notes"]),
                         body.get("due_date", row["due_date"]),
-                        float(body.get("tax_rate", row["tax_rate"])),
+                        rate_or_zero(body.get("tax_rate", row["tax_rate"])),
                         ident,
                     ),
                 )
@@ -1284,14 +1306,14 @@ class Handler(BaseHTTPRequestHandler):
                 job["id"],
                 job["address_id"],
                 "unpaid",
-                s["tax_rate"],
+                rate_or_zero(s["tax_rate"]),
                 issued,
                 due,
                 job["scope"],
             ),
         )
         iid = cur.lastrowid
-        # line items from quote labor if present, else a labor line, plus job materials
+        # line items from the quote if present; otherwise unpriced labor + material lines (no price rule yet)
         if job["quote_id"]:
             qitems = conn.execute(
                 "SELECT * FROM quote_items WHERE quote_id=?", (job["quote_id"],)
@@ -1305,13 +1327,12 @@ class Handler(BaseHTTPRequestHandler):
             mats = conn.execute("SELECT * FROM job_materials WHERE job_id=?", (job_id,)).fetchall()
             conn.execute(
                 "INSERT INTO invoice_items (invoice_id, description, qty, unit_price) VALUES (?,?,?,?)",
-                (iid, f"Labor — {job['job_type'].replace('_',' ')} ({job['number']})", 1, s["default_labor_rate"] * 2),
+                (iid, f"Labor — {job['job_type'].replace('_',' ')} ({job['number']})", 1, 0),
             )
             for m in mats:
-                markup = money(m["unit_cost"] * 1.45)
                 conn.execute(
                     "INSERT INTO invoice_items (invoice_id, description, qty, unit_price) VALUES (?,?,?,?)",
-                    (iid, m["description"], m["qty"], markup),
+                    (iid, m["description"], m["qty"], 0),
                 )
         conn.execute("UPDATE jobs SET status='billed' WHERE id=?", (job_id,))
         conn.commit()

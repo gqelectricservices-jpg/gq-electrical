@@ -17,9 +17,9 @@ Then:
 | Public marketing site | **http://localhost:3000/** |
 | Shop back office | **http://localhost:3000/shop** |
 | Client portal | **http://localhost:3000/portal** |
-| Invoice pay | **http://localhost:3000/pay?n=INV-3004** |
+| Invoice pay | **http://localhost:3000/pay?n=INV-xxxx** |
 
-Data lives in `data/gq.db` and survives restarts.
+Data lives in `data/gq.db` (not tracked in git). If the file is missing, the server creates an empty database with only the company settings row — no sample records and no prices.
 
 ## How a web request flows
 
@@ -30,17 +30,9 @@ Data lives in `data/gq.db` and survives restarts.
 
 ## Portal & payments
 
-- Portal lookup: **name + phone**, or a **portal code** (e.g. `GQ-ORTIZ3` for the Ortiz demo).
+- Portal lookup: **name + phone**, or a **portal code**.
 - Quotes, jobs, and invoices for that customer only.
 - **Pay** records a `payments` row on the invoice the same way the shop’s “Record payment” does (`method=card`, reference like `Online checkout · Visa ••4242`). No card network is charged. Stripe can be wired later. The shop invoice screen shows the payment immediately.
-
-Demo portal codes (existing customers were not wiped):
-
-- James & Elena Ortiz — `GQ-ORTIZ3` — unpaid EV invoice `INV-3004`
-- Ryan Cho — `GQ-CHO662` — paid `INV-3001`
-- Lakeside Condominium Association — `GQ-LAKE07` — overdue `INV-3002`
-
-Seeded example web requests: Claire Whitmore (lighting), Daniel Lang (panel).
 
 ## Shop office (unchanged modules)
 
