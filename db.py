@@ -2,6 +2,7 @@
 """SQLite schema and connection helpers for GQ Electrical Services. No demo data."""
 from __future__ import annotations
 
+import json
 import secrets
 import sqlite3
 from datetime import date, datetime, timedelta
@@ -49,7 +50,9 @@ CREATE TABLE IF NOT EXISTS settings (
   location_line TEXT,
   hero_headline TEXT,
   hero_subhead TEXT,
-  about_blurb TEXT
+  about_blurb TEXT,
+  warranty TEXT,
+  rate_card TEXT
 );
 
 CREATE TABLE IF NOT EXISTS team (
@@ -232,15 +235,15 @@ def new_portal_code(conn: sqlite3.Connection) -> str:
 
 
 SITE_DEFAULTS = {
-    "company_name": "GQ Electrical Services",
+    "company_name": "GQ Electrical Services LLC",
     "license_no": "ER13016834",
-    "phone": "+1 (689) 500-6543",
-    "email": "Services@gqelectrical.com",
+    "phone": "(407) 639-6795",
+    "email": "GQelectric.services@gmail.com",
     "street": "2207 Plantation Lakes Cir",
     "city": "Sanford",
     "state": "FL",
     "zip": "32771",
-    "service_area": "Seminole, Orange, Volusia, and Lake Counties",
+    "service_area": "Orange, Lake, Volusia, and Seminole Counties",
     "tagline": "Where Guaranteed Meets Quality.",
     "location_line": "Sanford, Florida",
     "hero_headline": "Electrical for houses that notice.",
@@ -253,6 +256,41 @@ SITE_DEFAULTS = {
         "Licensed and insured in Florida. Ready for residential builders and homeowners across Central Florida."
     ),
 }
+
+
+# Owner's rate card, exactly as given. Stored only; nothing auto-prices from it yet.
+RATE_CARD = {
+    "lines": [
+        "Solo service: $190 for the drive and the first hour; $160 each hour after",
+        "Pair on service or a custom house: $260 an hour flat",
+        "Materials: at cost plus 30%",
+        "Diagnostic trip: the $190, credited if they hire us the same visit",
+        "Planned quotes: free",
+        "Permit: on its own line at the county fee, plus $150 handling, or $250 on a service change",
+        "Tract houses, rough and trim: $6.50/sq ft if the builder supplies the lights; billed 60% after rough inspection and 40% after final",
+        "$7.50/sq ft only if we supply a cheap builder-grade light package",
+        "Any other light list: cost plus 30% on top of the $6.50",
+        "Price good for 30 days",
+    ],
+    "solo_service": {"drive_and_first_hour": 190.00, "each_additional_hour": 160.00},
+    "pair_or_custom_house_hourly": 260.00,
+    "materials_markup_pct": 30,
+    "diagnostic_trip": {"fee": 190.00, "credited_if_hired_same_visit": True},
+    "planned_quote_fee": 0,
+    "permit": {
+        "county_fee": "pass-through, own line",
+        "handling": 150.00,
+        "handling_service_change": 250.00,
+    },
+    "tract_rough_and_trim": {
+        "per_sqft_builder_supplies_lights": 6.50,
+        "per_sqft_we_supply_builder_grade_package": 7.50,
+        "other_light_list": "base $6.50/sq ft plus light list at cost plus 30%",
+        "billing": {"after_rough_inspection_pct": 60, "after_final_pct": 40},
+    },
+    "quote_valid_days": 30,
+}
+RATE_CARD_JSON = json.dumps(RATE_CARD)
 
 
 def migrate(conn: sqlite3.Connection) -> None:
@@ -289,6 +327,8 @@ def migrate(conn: sqlite3.Connection) -> None:
         ("hero_headline", "TEXT"),
         ("hero_subhead", "TEXT"),
         ("about_blurb", "TEXT"),
+        ("warranty", "TEXT"),
+        ("rate_card", "TEXT"),
     ]:
         if col not in scols:
             conn.execute(f"ALTER TABLE settings ADD COLUMN {col} {decl}")
@@ -298,6 +338,8 @@ def migrate(conn: sqlite3.Connection) -> None:
         for key in ("tagline", "location_line", "hero_headline", "hero_subhead", "about_blurb"):
             if not (row.get(key) or "").strip():
                 conn.execute(f"UPDATE settings SET {key} = ? WHERE id = 1", (SITE_DEFAULTS[key],))
+        if not (row.get("rate_card") or "").strip():
+            conn.execute("UPDATE settings SET rate_card = ? WHERE id = 1", (RATE_CARD_JSON,))
     _relax_price_columns(conn)
     conn.commit()
 
@@ -320,7 +362,7 @@ def _relax_price_columns(conn: sqlite3.Connection) -> None:
 
 # Fresh database starts with the owner only. No phone until he enters it.
 TEAM = [
-    ("Gerard Alberta", "owner", None, "gerard@gqelectrical.com", "#c9922a"),
+    ("Gerard Alberta", "owner", None, None, "#c9922a"),
 ]
 
 def init_db(conn: sqlite3.Connection) -> None:
@@ -333,8 +375,8 @@ def init_db(conn: sqlite3.Connection) -> None:
             """
             INSERT INTO settings (
               id, company_name, license_no, phone, email, street, city, state, zip, service_area,
-              tagline, location_line, hero_headline, hero_subhead, about_blurb
-            ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              tagline, location_line, hero_headline, hero_subhead, about_blurb, rate_card
+            ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             tuple(
                 SITE_DEFAULTS[k]
@@ -342,7 +384,8 @@ def init_db(conn: sqlite3.Connection) -> None:
                     "company_name", "license_no", "phone", "email", "street", "city", "state", "zip",
                     "service_area", "tagline", "location_line", "hero_headline", "hero_subhead", "about_blurb",
                 )
-            ),
+            )
+            + (RATE_CARD_JSON,),
         )
         if conn.execute("SELECT COUNT(*) AS c FROM team").fetchone()["c"] == 0:
             for t in TEAM:

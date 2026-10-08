@@ -851,6 +851,7 @@
             <div class="grand"><span>Balance due</span><span>${money(inv.balance)}</span></div>
           </div>
           <p class="tiny" style="margin-top:24px">${esc(co.invoice_footer || "")}</p>
+          ${co.warranty ? `<p class="tiny">${esc(co.warranty)}</p>` : ""}
           <p class="tiny">Where Guaranteed Meets Quality.</p>
           <div class="btn-row no-print" style="margin-top:16px">
             <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
@@ -1065,9 +1066,16 @@
           <label class="field">Default labor rate ($/hr)<input name="default_labor_rate" type="number" step="0.01" value="${s.default_labor_rate ?? ""}" placeholder="Not set" /></label>
           <label class="field">Tax rate<input name="tax_rate" type="number" step="0.00001" value="${s.tax_rate ?? ""}" placeholder="Not set" /></label>
         </div>
-        <label class="field">Invoice footer<textarea name="invoice_footer">${esc(s.invoice_footer || "")}</textarea></label>
+        <label class="field">Invoice terms / footer<textarea name="invoice_footer" placeholder="Paste your terms">${esc(s.invoice_footer || "")}</textarea></label>
+        <label class="field">Warranty<textarea name="warranty" placeholder="Paste your warranty">${esc(s.warranty || "")}</textarea></label>
         <button class="btn btn-primary" type="submit">Save settings</button>
       </form>
+      <div class="section"><h2>Rate card</h2></div>
+      <div class="card">
+        ${(s.rate_card && s.rate_card.lines && s.rate_card.lines.length)
+          ? `<ul class="stack" style="margin:0;padding-left:18px">${s.rate_card.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`
+          : `<div class="empty">No rate card saved.</div>`}
+      </div>
     `);
     $("#sf").addEventListener("submit", async (e) => {
       e.preventDefault();

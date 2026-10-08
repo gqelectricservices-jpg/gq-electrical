@@ -265,14 +265,14 @@ def hydrate_request(conn, r):
 
 # Fallbacks when settings fields are empty — keep public site usable.
 PUBLIC_DEFAULTS = {
-    "company_name": "GQ Electrical Services",
-    "phone": "+1 (689) 500-6543",
-    "email": "Services@gqelectrical.com",
+    "company_name": "GQ Electrical Services LLC",
+    "phone": "(407) 639-6795",
+    "email": "GQelectric.services@gmail.com",
     "street": "2207 Plantation Lakes Cir",
     "city": "Sanford",
     "state": "FL",
     "zip": "32771",
-    "service_area": "Seminole, Orange, Volusia, and Lake Counties",
+    "service_area": "Orange, Lake, Volusia, and Seminole Counties",
     "license_no": "ER13016834",
     "tagline": "Where Guaranteed Meets Quality.",
     "location_line": "Sanford, Florida",
@@ -451,6 +451,15 @@ def settings_row(conn):
     return conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
 
 
+def settings_out(conn):
+    s = dict(settings_row(conn) or {})
+    try:
+        s["rate_card"] = json.loads(s.get("rate_card") or "null")
+    except (TypeError, ValueError):
+        s["rate_card"] = None
+    return s
+
+
 def read_json(handler) -> dict:
     n = int(handler.headers.get("Content-Length") or 0)
     if n == 0:
@@ -542,7 +551,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if resource == "settings":
             if method == "GET":
-                return self._send(200, settings_row(conn))
+                return self._send(200, settings_out(conn))
             if method == "PUT":
                 body = read_json(self)
                 fields = [
@@ -558,6 +567,7 @@ class Handler(BaseHTTPRequestHandler):
                     "default_labor_rate",
                     "tax_rate",
                     "invoice_footer",
+                    "warranty",
                     "tagline",
                     "location_line",
                     "hero_headline",
@@ -575,7 +585,7 @@ class Handler(BaseHTTPRequestHandler):
                 if sets:
                     conn.execute(f"UPDATE settings SET {', '.join(sets)} WHERE id = 1", vals)
                     conn.commit()
-                return self._send(200, settings_row(conn))
+                return self._send(200, settings_out(conn))
 
         if resource == "team":
             if method == "GET" and not ident:
@@ -1064,7 +1074,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not row:
                     return self._err(404, "Invoice not found")
                 inv = hydrate_invoice(conn, row)
-                inv["company"] = settings_row(conn)
+                inv["company"] = settings_out(conn)
                 return self._send(200, inv)
             if ident and sub == "payments" and method == "POST":
                 body = read_json(self)
