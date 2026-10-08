@@ -443,6 +443,7 @@
         </label>
         <div class="card" id="totals"></div>
         <button class="btn btn-primary" type="submit">Save quote</button>
+        ${!isNew ? `<a class="btn btn-ghost no-print" href="#/quotes/${q.id}/print">Print quote</a>` : ""}
         ${!isNew ? `<button class="btn btn-delete no-print" type="button" id="del-rec">Delete quote</button>` : ""}
       </form>
       ${!isNew && q.status === "accepted" ? `<button class="btn btn-block" style="margin-top:10px" id="convert" type="button">Convert to job</button>` : ""}
@@ -805,60 +806,10 @@
     const co = inv.company || {};
     setTitle(printMode ? "Print " + inv.number : inv.number);
     if (printMode) {
-      html(`
-        <div class="print-sheet card">
-          <div class="print-head">
-            <img class="lockup" src="/brand/logo-stacked.svg" alt="GQ Electrical Services" />
-            <div class="print-meta">
-              <strong>${esc(inv.number)}</strong>
-              ${esc(co.company_name || "GQ Electrical Services")}<br/>
-              ${esc(co.street || "")}<br/>${esc([co.city, co.state, co.zip].filter(Boolean).join(" "))}<br/>
-              ${esc(co.phone || "")}<br/>${esc(co.email || "")}<br/>
-              License ${esc(co.license_no || "")}
-            </div>
-          </div>
-          <div class="grid-2">
-            <div>
-              <h2>Bill to</h2>
-              <div class="strong">${esc(inv.customer?.name || "")}</div>
-              <div class="addr">${esc(addrLine(inv.address))}</div>
-            </div>
-            <div>
-              <h2>Invoice</h2>
-              <div>Issued ${fmtDate(inv.issued_at)}</div>
-              <div>Due ${fmtDate(inv.due_date)}</div>
-              ${inv.job ? `<div>Job ${esc(inv.job.number)}</div>` : ""}
-              <div style="margin-top:8px">${badge(inv.status)}</div>
-            </div>
-          </div>
-          <div class="table-wrap" style="margin-top:16px">
-            <table class="data">
-              <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
-              <tbody>
-                ${(inv.items || []).map((it) => `<tr>
-                  <td>${esc(it.description)}</td><td class="num">${it.qty}</td>
-                  <td class="num">${money(it.unit_price)}</td>
-                  <td class="num">${money(it.qty * it.unit_price)}</td>
-                </tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
-          <div class="totals">
-            <div><span>Subtotal</span><span>${money(inv.subtotal)}</span></div>
-            <div><span>Tax</span><span>${money(inv.tax)}</span></div>
-            <div class="grand"><span>Total</span><span>${money(inv.total)}</span></div>
-            <div><span>Paid</span><span>${money(inv.paid)}</span></div>
-            <div class="grand"><span>Balance due</span><span>${money(inv.balance)}</span></div>
-          </div>
-          <p class="tiny" style="margin-top:24px">${esc(co.invoice_footer || "")}</p>
-          ${co.warranty ? `<p class="tiny">${esc(co.warranty)}</p>` : ""}
-          <p class="tiny">Where Guaranteed Meets Quality.</p>
-          <div class="btn-row no-print" style="margin-top:16px">
-            <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
-            <a class="btn btn-ghost" href="#/invoices/${inv.id}">Back</a>
-          </div>
-        </div>
-      `);
+      html(docSheet("invoice", {
+        number: inv.number, date: fmtDate(inv.issued_at), customer: inv.customer, address: inv.address,
+        scope: inv.notes, items: inv.items, total: inv.total, tax: inv.tax, paid: inv.paid, balance: inv.balance,
+      }, "#/invoices/" + inv.id));
       return;
     }
 
@@ -1076,6 +1027,8 @@
           ? `<ul class="stack" style="margin:0;padding-left:18px">${s.rate_card.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`
           : `<div class="empty">No rate card saved.</div>`}
       </div>
+      <div class="section"><h2>Blank forms</h2></div>
+      <div class="btn-row"><a class="btn btn-ghost" href="#/forms/quote">Blank quote</a><a class="btn btn-ghost" href="#/forms/invoice">Blank invoice</a></div>
     `);
     $("#sf").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1184,6 +1137,57 @@
     });
   }
 
+  /* ---------------- Quote / invoice document (locked layout in gq-doc.js) ---------------- */
+  function docSheet(kind, d, backHref) {
+    const items = d.items || [];
+    const isPermit = (it) => /permit/i.test(it.description || "");
+    const lineSum = (arr) => arr.reduce((t, it) => t + (+it.qty || 0) * (+it.unit_price || 0), 0);
+    const permitItems = items.filter(isPermit);
+    const hasData = items.length > 0;
+    const a = d.address || null;
+    const c = d.customer || {};
+    const body = window.GQDoc.render({
+      kind,
+      number: d.number || "",
+      date: d.date || "",
+      customer: {
+        name: c.name || "",
+        address: a ? a.street || "" : "",
+        cityStateZip: a ? [[a.city, a.state].filter(Boolean).join(", "), a.zip].filter(Boolean).join(" ") : "",
+        phone: c.phone || "",
+        email: c.email || "",
+      },
+      scope: d.scope || "",
+      items: items.map((it) => ({ description: it.description, qty: it.qty, unit_price: it.unit_price })),
+      subtotal: hasData ? lineSum(items.filter((it) => !isPermit(it))) : null,
+      permit: permitItems.length ? lineSum(permitItems) : null,
+      tax: d.tax || 0,
+      total: hasData ? d.total : null,
+      paid: d.paid || 0,
+      balance: d.balance,
+      minRows: d.minRows ?? 6,
+    });
+    return `${body}
+      <div class="btn-row no-print" style="margin:16px auto;max-width:7.5in">
+        <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+        ${backHref ? `<a class="btn btn-ghost" href="${backHref}">Back</a>` : ""}
+      </div>`;
+  }
+
+  async function pageQuotePrint(id) {
+    const q = await api("/quotes/" + id);
+    setTitle("Print " + q.number);
+    html(docSheet("quote", {
+      number: q.number, date: fmtDate(q.created_at), customer: q.customer, address: q.address,
+      scope: q.notes, items: q.items, total: q.total, tax: q.tax,
+    }, "#/quotes/" + q.id));
+  }
+
+  function pageBlankForm(kind) {
+    setTitle(kind === "invoice" ? "Blank invoice" : "Blank quote");
+    html(docSheet(kind, { minRows: 7 }, null));
+  }
+
   /* ---------------- Router ---------------- */
   async function route() {
     const { path, parts } = parseHash();
@@ -1202,6 +1206,7 @@
       if (a === "customers" && b) return await pageCustomer(b);
       if (a === "customers") return await pageCustomers();
       if (a === "quotes" && b === "new") return await pageQuote(null, true);
+      if (a === "quotes" && b && c === "print") return await pageQuotePrint(b);
       if (a === "quotes" && b) return await pageQuote(b);
       if (a === "quotes") return await pageQuotes();
       if (a === "jobs" && b === "new") return await pageJob(null, true);
@@ -1215,6 +1220,7 @@
       if (a === "team") return await pageTeam();
       if (a === "settings") return await pageSettings();
       if (a === "website") return await pageWebsite();
+      if (a === "forms" && (b === "quote" || b === "invoice")) return pageBlankForm(b);
       html(`<div class="empty">Not found.</div>`);
     } catch (err) {
       html(`<div class="empty">${esc(err.message || err)}</div>`);
