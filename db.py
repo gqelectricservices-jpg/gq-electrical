@@ -318,15 +318,10 @@ def _relax_price_columns(conn: sqlite3.Connection) -> None:
     conn.execute("DROP TABLE settings_old")
 
 
-# Existing team list, kept as-is (not part of the sample-data wipe; owner to confirm).
+# Fresh database starts with the owner only. No phone until he enters it.
 TEAM = [
-    ("Gerard Alberta", "owner", "(407) 555-0144", "gerard@gqelectrical.com", "#c9922a"),
-    ("Marcus Hale", "technician", "(908) 555-0171", "marcus@gqelectrical.com", "#1c3a5f"),
-    ("Devon Price", "technician", "(908) 555-0172", "devon@gqelectrical.com", "#2d6a4f"),
-    ("Sofia Reyes", "technician", "(908) 555-0173", "sofia@gqelectrical.com", "#7c2d12"),
-    ("Kim Ellison", "office", "(908) 555-0145", "kim@gqelectrical.com", "#5c5852"),
+    ("Gerard Alberta", "owner", None, "gerard@gqelectrical.com", "#c9922a"),
 ]
-
 
 def init_db(conn: sqlite3.Connection) -> None:
     """Create an empty schema. Only the company settings row (and existing team list) is written; no sample records."""
