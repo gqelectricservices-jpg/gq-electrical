@@ -237,8 +237,8 @@ def new_portal_code(conn: sqlite3.Connection) -> str:
 SITE_DEFAULTS = {
     "company_name": "GQ Electrical Services LLC",
     "license_no": "ER13016834",
-    "phone": "(407) 639-6795",
-    "email": "GQelectric.services@gmail.com",
+    "phone": "(689) 500-6543",
+    "email": "Services@gqelectrical.com",
     "street": "2207 Plantation Lakes Cir",
     "city": "Sanford",
     "state": "FL",

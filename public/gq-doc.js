@@ -7,7 +7,7 @@
     tagline: "Where Guaranteed Meets Quality",
     area: "Orlando / Sanford / Winter Garden",
     phone: "(689) 500-6543",
-    email: "services@gqelectrical.com",
+    email: "Services@gqelectrical.com",
     license: "ER13016834",
   };
   const FOOTER = [

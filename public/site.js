@@ -49,7 +49,9 @@
       const lic = document.getElementById("c-lic");
       if (c.phone && phone) {
         phone.textContent = c.phone;
-        phone.href = "tel:" + String(c.phone).replace(/[^\d+]/g, "");
+        let digits = String(c.phone).replace(/[^\d+]/g, "");
+        if (/^\d{10}$/.test(digits)) digits = "+1" + digits;
+        phone.href = "tel:" + digits;
       }
       if (c.email && email) {
         email.textContent = c.email;

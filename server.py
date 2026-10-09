@@ -266,8 +266,8 @@ def hydrate_request(conn, r):
 # Fallbacks when settings fields are empty — keep public site usable.
 PUBLIC_DEFAULTS = {
     "company_name": "GQ Electrical Services LLC",
-    "phone": "(407) 639-6795",
-    "email": "GQelectric.services@gmail.com",
+    "phone": "(689) 500-6543",
+    "email": "Services@gqelectrical.com",
     "street": "2207 Plantation Lakes Cir",
     "city": "Sanford",
     "state": "FL",
