@@ -14,17 +14,12 @@
     LOCKED.company, LOCKED.tagline, LOCKED.area, LOCKED.phone, LOCKED.email, "License " + LOCKED.license,
   ].join(" · ");
   const TERMS = [
-    "Licensed ER13016834. General liability and workers' comp.",
-    "Permits obtained by us; county fee plus handling added to the invoice.",
-    "Labor warranted one year from completion against defects in workmanship.",
-    "Materials covered by the manufacturer only.",
-    "Changes in writing before the work.",
-    "Lack of access billed at the crew rate.",
-    "Florida law.",
-    "This document is the whole agreement.",
-    "Quote good for 30 days.",
-    "Payment due on completion unless the quote says otherwise.",
-    "Rates for new jobs only: solo $190 first hour, then $160/hr; pair $260/hr; materials at cost plus 30%.",
+    "GQ Electrical Services LLC is a Florida Registered Electrical Contractor, license ER13016834, and carries general liability and workers’ compensation insurance.",
+    "This quote covers only the work listed in the scope. Anything not listed is not included. The price is good for 30 days.",
+    "Payment is due on completion unless this quote states otherwise. Permit fees are charged at the county’s rate, plus the handling amount shown on the quote, and are added to the invoice.",
+    "Labor is warranted for one year from completion against defects in workmanship. Materials are covered only by the manufacturer’s warranty.",
+    "Any change to the scope must be agreed in writing before the work is done, and may change the price. If we cannot reach the work area, extra time is billed at the crew rate.",
+    "This quote is the whole agreement. It is governed by Florida law.",
   ];
 
   function esc(s) {
@@ -114,7 +109,7 @@
         </div>
       </section>
       <section class="gqd-terms">
-        <h2>3. Terms &amp; Conditions</h2>
+        <h2>3. TERMS</h2>
         <ul>${TERMS.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
       </section>
       <footer class="gqd-foot">${esc(FOOTER)}</footer>
